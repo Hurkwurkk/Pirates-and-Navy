@@ -1,0 +1,598 @@
+﻿<!doctype html>
+<meta charset="utf-8">
+<title>Pirates & Navy</title>
+
+<style>
+{
+padding: 0px;
+margin: 0px;
+}
+
+/*size of the ocean (playing board)*/
+#ocean
+{
+position: relative;
+width: 896px;
+height: 768px;
+margin:10px;
+background-image: url("../PiratesAndNavy2/Water.jpg");
+}
+/*size of each cell on the ocean*/
+.cell
+{
+display: block;
+position: absolute;
+width: 128px;
+height :128px;
+}
+/*size of the the ocean*/
+{
+width: 1140px;
+height: 1140px;
+}
+@font-face 
+{
+font-family: AverdanaOrange;
+src: url("../../../Lab.css");
+}
+</style>
+<link href="../../../Lab.css" rel="stylesheet" type="text/css" />
+
+<section id="game">
+<h1 class="AVerdanaOrangeBold">CrockettGames Presents</h1>
+<p class="AVerdanaOrangeBold"><img src="../PiratesAndNavy2/P&NTitle.png" alt="PiratesNavy" width="309" height="91"></p>
+<div id="ocean"></div>
+<p id="output"></p>
+
+<script>
+
+//Get a reference to the ocean and output
+var ocean = document.querySelector("#ocean");
+var output = document.querySelector("#output");
+
+//Keyboard listener for user to manipulate ship
+window.addEventListener("keydown", keydownHandler, false);
+
+function shuffle(myArray)
+{
+var ctr = myArray.length, temp, index;
+
+while (ctr > 0)
+{
+index = Math.floor(Math.random() * ctr);
+ctr --;
+temp = myArray[ctr];
+myArray[ctr] = myArray[index];
+myArray[index] = temp;
+}
+return myArray;
+}
+
+//Game matrix
+var map =
+[
+[6,2,0,0,0,0,3],
+[0,0,0,1,0,2,0],
+[0,1,0,0,0,0,7],
+[0,0,0,0,2,0,0],
+[0,7,0,1,0,0,0],
+[0,0,0,0,0,2,6]
+];
+console.log(shuffle(map))
+
+//Placing the various game objects on the Map
+var gameObjects =
+[
+[0,0,0,5,0,0,0],
+[0,0,0,0,0,0,0],
+[0,0,0,0,0,0,0],
+[0,0,0,,0,0,0],
+[0,0,0,0,0,0,0],
+[4,0,0,0,0,0,0]
+];
+
+//Map code--used in the matrix above
+var water = 0;
+var island = 1;
+var pirate = 2;
+var homePort = 3;
+var ship = 4;
+var monster = 5;
+var pirateIsland = 6;
+var mysteryIsland = 7;
+
+//The size of each cell
+var size = 128;
+
+//The number of rows and columns
+var rows = map.length;
+var columns = map[0].length;
+
+//Find the ship's and monster's start positions
+var shipRow;
+var shipColumn;
+var monsterRow;
+var monsterColumn;
+
+for(var row = 0; row < rows; row++) 
+{ 
+for(var column = 0; column < columns; column++) 
+{
+if(gameObjects[row][column] === ship)
+{ 
+shipRow = row;
+shipColumn = column;
+}
+if(gameObjects[row][column] === monster)
+{ 
+monsterRow = row;
+monsterColumn = column;
+}
+}
+}
+
+//Arrow key codes
+var up = 38;
+var down = 40;
+var right = 39;
+var left = 37;
+
+//The game variables
+var food = 11;
+var gold = 10;
+var experience = 0;
+var gameMessage = "Use arrow keys to sail home and avoid the monster. Reload page to re-play.";
+
+render ();
+
+function playSound(soundfile_ogg, soundfile_mp, soundfile_ma) {
+    if ("Audio" in window) {
+        var a = new Audio();
+        if (!!(a.canPlayType && a.canPlayType('audio/ogg; codecs="vorbis"')
+                .replace(/no/, '')))
+            a.src = soundfile_ogg;
+        else if (!!(a.canPlayType && a.canPlayType('audio/mpeg;').replace(/no/,
+                '')))
+            a.src = soundfile_mp;
+        else if (!!(a.canPlayType && a.canPlayType(
+                'audio/mp4; codecs="mp4a.40.2"').replace(/no/, '')))
+            a.src = soundfile_ma;
+        else
+            a.src = soundfile_mp;
+        a.autoplay = true;
+        return;
+    } else {
+        alert("Time almost up");
+    }}
+
+
+//Set the ship's start position
+var shipRow;
+var shipColumn;
+
+for(var row = 0; row < rows; row++)
+{
+for(var column = 0; column < columns; column++)
+{
+if(gameObjects[row][column] === ship)
+{
+shipRow = row;
+shipColumn = column;
+}
+}
+}
+
+//will clear the ocean map from previous turns
+render();
+
+function keydownHandler(event)
+{
+switch(event.keyCode)
+{
+case up:
+//determine if the ship's move will be within the playing field
+if(shipRow > 0)
+{
+//if so, clear ship's current cell
+gameObjects[shipRow][shipColumn] = 0;
+//subract 1 from the ship's row to move it up one row on the map
+shipRow--;
+//apply the ship's new updated position to the array
+gameObjects[shipRow][shipColumn] = ship;
+}
+break;
+case down:
+if(shipRow < rows - 1)
+{
+gameObjects[shipRow][shipColumn] = 0;
+shipRow++;
+gameObjects[shipRow][shipColumn] = ship;
+}
+break;
+case left:
+if(shipColumn > 0)
+{
+gameObjects[shipRow][shipColumn] = 0;
+shipColumn--;
+gameObjects[shipRow][shipColumn] = ship;
+}
+break;
+case right:
+if(shipColumn < columns - 1)
+{
+gameObjects[shipRow][shipColumn] = 0;
+shipColumn++;
+gameObjects[shipRow][shipColumn] = ship;
+}
+break;
+}
+//find out what kind of cell the ship is on
+switch(map[shipRow][shipColumn])
+{
+case water:
+gameMessage = "You sail the open seas."
+break;
+case pirate:
+fight();
+break;
+case island:
+trade();
+break;
+case homePort:
+endGame();
+break;
+case pirateIsland:
+pirateIslandFight();
+break;
+case mysteryIsland:
+pirateIslandFight();
+break;
+}
+
+//Move the monster
+moveMonster();
+
+//Find out if the ship is touching the monster
+if(gameObjects[shipRow][shipColumn] === monster)
+{
+endGame();
+}
+
+//Subtract some food each turn
+food--;
+
+//Find out if the ship has run out of food or gold
+if(food <= 0 || gold <= 0)
+{
+endGame();
+}
+
+
+//Render the game
+render();
+}
+
+function moveMonster()
+{
+//The 4 possible directions that the monster can move
+
+var UP = 1;
+var DOWN = 2;
+var LEFT = 3;
+var RIGHT = 4;
+
+//An array to store the valid direction that
+//the monster is allowed to move in
+var validDirections = [];
+
+//The final direction that the monster will move in
+var direction = undefined;
+
+//Find out what kinds of things are in the cells 
+//that surround the monster. If the cells contain water,
+//push the corresponding direction into the validDirections array
+if(monsterRow > 0)
+{
+var thingAbove = map[monsterRow - 1][monsterColumn];
+if(thingAbove === water)
+{
+validDirections.push(UP);
+}
+}
+if(monsterRow < rows - 1)
+{ 
+var thingBelow = map[monsterRow + 1][monsterColumn];
+if(thingBelow === water)
+{
+validDirections.push(DOWN);
+}
+}
+if(monsterColumn > 0)
+{
+var thingToTheLeft = map[monsterRow][monsterColumn - 1];
+if(thingToTheLeft === water)
+{
+validDirections.push(LEFT);
+}
+} 
+if(monsterColumn < columns - 1)
+{
+var thingToTheRight = map[monsterRow][monsterColumn + 1];
+if(thingToTheRight === water)
+{
+validDirections.push(RIGHT);
+}
+} 
+
+//The validDirections array now contains 0 to 4 directions that the 
+//contain water cells. Which of those directions will the monster
+//choose to move in?
+
+//If a valid direction was found, Randomly choose one of the 
+//possible directions and assign it to the direction variable
+if(validDirections.length !== 0)
+{
+var randomNumber = Math.floor(Math.random() * validDirections.length);
+direction = validDirections[randomNumber];
+}
+
+//Move the monster in the chosen direction
+switch(direction)
+{
+case UP:
+//Clear the monster's current cell
+gameObjects[monsterRow][monsterColumn] = 0;
+//Subtract 1 from the monster's row
+monsterRow--; 
+//Apply the monster's new updated position to the array
+gameObjects[monsterRow][monsterColumn] = monster;
+break;
+
+case DOWN:
+gameObjects[monsterRow][monsterColumn] = 0;
+monsterRow++;
+gameObjects[monsterRow][monsterColumn] = monster;
+break;
+
+case LEFT:
+gameObjects[monsterRow][monsterColumn] = 0;
+monsterColumn--;
+gameObjects[monsterRow][monsterColumn] = monster;
+break;
+
+case RIGHT:
+gameObjects[monsterRow][monsterColumn] = 0;
+monsterColumn++;
+gameObjects[monsterRow][monsterColumn] = monster;
+}
+}
+
+function trade()
+{
+//Figure out how much food the island has
+//and how much it should cost
+var newFood = experience + gold;
+var cost = Math.ceil(Math.random() * newFood);
+
+//Let the player buy food if there's enough gold
+//to afford it and increment experience
+if(gold > cost)
+{
+food += newFood;
+experience += 3;
+gold -= cost;
+
+
+gameMessage 
+= "You buy " + newFood + " coconuts"
++ " for " + cost + " gold pieces."
+}
+else
+{
+//Tell the player if they don't have enough gold
+experience += 1;
+gameMessage = "Mismanager! We don't have enough gold to buy food."
+}
+}
+
+function fight()
+{
+
+//The ships strength
+var shipStrength = Math.ceil((food + gold) / 2);
+
+//A random number between 1 and the ship's strength
+var pirateStrength = Math.ceil(Math.random() * shipStrength * 2);
+
+if(pirateStrength > shipStrength)
+{
+//The pirates ransack the ship
+var stolenGold = Math.round(pirateStrength / 2);
+gold -= stolenGold;
+
+//Give the player some experience for trying 
+experience += 1;
+
+//Update the game message
+gameMessage 
+= "You fight and lose " + stolenGold + " gold pieces."
++ " <br>Ship's strength: " + shipStrength 
++ " <br>Pirate's strength: " + pirateStrength;
+}
+else
+{
+//You win the pirates' gold
+var pirateGold = Math.round(pirateStrength / 2);
+gold += pirateGold;
+
+//Add some experience 
+experience += 2;
+
+//Update the game message
+gameMessage 
+= "You fight and win " + pirateGold + " gold pieces."
++ " <br>Ship's strength: " + shipStrength 
++ " <br>Pirate's strength: " + pirateStrength;
+} 
+}
+
+function pirateIslandFight()
+{
+
+//The ships strength
+var shipStrength = Math.ceil((food + gold) / 2);
+
+//A random number between 1 and the ship's strength
+var pirateStrength = Math.ceil(Math.random() * shipStrength * 2);
+
+if(pirateStrength > shipStrength)
+{
+//The pirates ransack the ship and steal some of the gold
+var stolenGold = Math.round(pirateStrength / 2);
+gold -= stolenGold;
+
+//Give the player some experience for trying 
+experience += 1;
+
+//Update the game message
+gameMessage 
+= "You get malaria and lose " + stolenGold + " gold pieces."
++ " <br>Ship's strength: " + shipStrength 
++ " <br>Pirate's strength: " + pirateStrength;
+}
+else
+{
+//You win the pirates' gold
+var pirateGold = Math.round(pirateStrength / 2);
+gold += pirateGold;
+
+//Add some experience 
+experience += 2;
+
+//Update the game message
+gameMessage 
+= "You discover " + pirateGold + " gold pieces."
++ " <br>Ship's strength: " + shipStrength 
++ " <br>Pirate's strength: " + pirateStrength;
+} 
+}
+
+function endGame()
+{
+if(map[shipRow][shipColumn] === homePort)
+{
+//Calculate the score
+var score = food + gold + experience;
+
+//Display the game message
+gameMessage 
+= "<strong>You made it home alive! " + "Final Score: " + score;
+this.playSound("../PiratesAndNavy2/FFVII Victory Fanfare.mp3");
+}
+else if(gameObjects[shipRow][shipColumn] === monster)
+{
+gameMessage 
+= "Your ship has been swallowed by a sea monster!";
+this.playSound("../PiratesAndNavy2/Taking A Bite.mp3");
+}
+else
+{
+//Display the game message
+if(gold <= 0)
+{
+gameMessage += " <br>You've run out of gold!"; 
+}
+else
+{
+gameMessage += " <br>You've run out of food!"; 
+}
+
+gameMessage 
++= " <br><strong>Mutiny: your crew makes you walk the plank while hurling expletives!"; 
+this.playSound("../PiratesAndNavy2/Wood Hull On Boat Creaking.mp3");
+}
+
+//Remove the keyboard listener to end the game
+window.removeEventListener("keydown", keydownHandler, false);
+}
+
+function render()
+{
+//Clear the ocean of img cells
+//from the previous turn
+if(ocean.hasChildNodes())
+{
+for(var i = 0; i < rows * columns; i++)
+{
+ocean.removeChild(ocean.firstChild);
+}
+}
+//Render the game by looping through the map arrays
+for(var row = 0; row < rows; row++)
+{
+for(var column = 0; column < columns; column++)
+{
+//Create an image tag called cell
+var cell = document.createElement("img");
+
+//Set the CSS class to "cell"
+cell.setAttribute("class", "cell");
+
+//Add the img tag to the <div id="ocean"> tag
+ocean.appendChild(cell);
+
+//Find the correct image for this map cell
+switch(map[row][column])
+{
+case water:
+cell.src = "../PiratesAndNavy2/Water.jpg";
+break;
+
+case island:
+cell.src = "../PiratesAndNavy2/desertIsland.png";
+break;
+
+case pirate:
+cell.src = "../PiratesAndNavy2/pirateship.png";
+break;
+
+case homePort:
+cell.src = "../PiratesAndNavy2/home2.png";
+break;
+
+case pirateIsland:
+cell.src = "../PiratesAndNavy2/pirateIsland.png";
+break;
+
+case mysteryIsland:
+cell.src = "../PiratesAndNavy2/mysteryIsland.png";
+break;
+}
+//Add the ship from the gameObjects array
+switch(gameObjects[row][column])
+{
+case monster:
+cell.src = "../PiratesAndNavy2/seaMonster.png";
+break;
+
+case ship:
+cell.src = "../PiratesAndNavy2/shipBritish.png";
+break;
+}
+//Position the cell
+cell.style.top = row * size + "px";
+cell.style.left = column * size + "px";
+}
+}
+//Display the game message
+output.innerHTML = gameMessage;
+
+//Display the player's food, gold, and experience
+output.innerHTML 
++= "<br><strong>Ship's Store</strong>: Gold: " + gold + ", Food: " 
++ food + ", Experience: " + experience;
+
+}
+
+
+</script>
